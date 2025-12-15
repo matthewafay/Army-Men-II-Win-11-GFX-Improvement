@@ -29,6 +29,7 @@ $script:ConfigState = @{
     ExecutablePath = ""
     CompatibilityFlags = ""
     ConfigFilePath = ""
+    CncDdrawVersion = ""
     Errors = @()
     Success = $false
 }
@@ -141,6 +142,13 @@ function Write-Summary {
         Write-Status -Message "Config File: $($Results.ConfigFilePath)" -Type "Success"
     } else {
         Write-Status -Message "Config File: Not configured" -Type "Warning"
+    }
+
+    # cnc-ddraw
+    if (-not [string]::IsNullOrEmpty($Results.CncDdrawVersion)) {
+        Write-Status -Message "cnc-ddraw: $($Results.CncDdrawVersion) installed" -Type "Success"
+    } else {
+        Write-Status -Message "cnc-ddraw: Not installed" -Type "Warning"
     }
 
     # Errors
@@ -790,16 +798,15 @@ function Set-GameResolution {
         $configContent['Direct3D'] = '0'
         $configContent['Hardware3D'] = '0'
         
-        # Also create a windowed launcher batch file
-        $launcherContent = @"
-@echo off
-echo Starting Army Men 2 in windowed compatibility mode...
-set __COMPAT_LAYER=WIN95 RUNASADMIN DISABLEDXMAXIMIZEDWINDOWEDMODE
-cd /d "$GamePath"
-start "" "ArmyMen2.exe"
-"@
-        $launcherPath = Join-Path -Path $GamePath -ChildPath "Launch_Windowed.bat"
-        Set-Content -Path $launcherPath -Value $launcherContent -Force
+        # Install cnc-ddraw for windowed mode compatibility
+        try {
+            Install-CncDdraw -GamePath $GamePath
+            Write-Verbose "cnc-ddraw installed successfully"
+        }
+        catch {
+            Write-Verbose "cnc-ddraw installation failed: $($_.Exception.Message)"
+            # Continue without cnc-ddraw - fallback to config file approach
+        }
 
         # Write config file
         $outputLines = @()
@@ -924,6 +931,113 @@ function Remove-GameConfig {
 
 #endregion
 
+#region cnc-ddraw Installation Module
+
+<#
+.SYNOPSIS
+    Downloads and installs cnc-ddraw wrapper for windowed mode compatibility.
+
+.DESCRIPTION
+    Downloads the latest cnc-ddraw from GitHub, backs up existing ddraw.dll,
+    and configures it for windowed mode operation.
+
+.PARAMETER GamePath
+    The path to the Army Men 2 installation directory.
+
+.OUTPUTS
+    PSCustomObject with installation results.
+
+.EXAMPLE
+    Install-CncDdraw -GamePath "C:\Steam\steamapps\common\Army Men II"
+
+.NOTES
+    Requirements: Internet connection for download
+#>
+function Install-CncDdraw {
+    [CmdletBinding()]
+    [OutputType([PSCustomObject])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$GamePath
+    )
+
+    try {
+        # Get latest cnc-ddraw release
+        $apiUrl = "https://api.github.com/repos/FunkyFr3sh/cnc-ddraw/releases/latest"
+        $release = Invoke-RestMethod -Uri $apiUrl -UseBasicParsing -ErrorAction Stop
+        $asset = $release.assets | Where-Object { $_.name -eq "cnc-ddraw.zip" }
+        
+        if (-not $asset) {
+            throw "cnc-ddraw.zip not found in latest release"
+        }
+
+        # Download cnc-ddraw
+        $downloadPath = Join-Path $env:TEMP "cnc-ddraw.zip"
+        $extractPath = Join-Path $env:TEMP "cnc-ddraw"
+        
+        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $downloadPath -UseBasicParsing -ErrorAction Stop
+        Write-Verbose "Downloaded cnc-ddraw v$($release.tag_name)"
+
+        # Extract
+        if (Test-Path $extractPath) { Remove-Item $extractPath -Recurse -Force }
+        Expand-Archive -Path $downloadPath -DestinationPath $extractPath -Force -ErrorAction Stop
+
+        # Backup existing ddraw.dll
+        $existingDdraw = Join-Path $GamePath "ddraw.dll"
+        if (Test-Path $existingDdraw) {
+            $backupPath = Join-Path $GamePath "ddraw.dll.backup"
+            Copy-Item $existingDdraw -Destination $backupPath -Force
+            Write-Verbose "Backed up existing ddraw.dll"
+        }
+
+        # Install cnc-ddraw files
+        $newDdraw = Join-Path $extractPath "ddraw.dll"
+        if (Test-Path $newDdraw) {
+            Copy-Item $newDdraw -Destination $GamePath -Force
+        }
+
+        # Create cnc-ddraw configuration for windowed mode
+        $ddrawConfig = @"
+[ddraw]
+windowed=true
+fullscreen=false
+width=0
+height=0
+maintas=true
+border=true
+resizable=true
+renderer=gdi
+nonexclusive=true
+adjmouse=true
+singlecpu=true
+vsync=false
+noactivateapp=false
+savesettings=true
+boxing=false
+shader=
+maxfps=0
+"@
+        $configPath = Join-Path $GamePath "ddraw.ini"
+        Set-Content -Path $configPath -Value $ddrawConfig -Force -ErrorAction Stop
+
+        # Cleanup
+        Remove-Item $downloadPath -Force -ErrorAction SilentlyContinue
+        Remove-Item $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+
+        return [PSCustomObject]@{
+            Success = $true
+            Version = $release.tag_name
+            ConfigPath = $configPath
+            Message = "cnc-ddraw installed successfully for windowed mode"
+        }
+    }
+    catch {
+        throw "Failed to install cnc-ddraw: $($_.Exception.Message)"
+    }
+}
+
+#endregion
+
 #region Main Execution
 
 <#
@@ -1042,24 +1156,23 @@ function Invoke-ArmyMen2Configuration {
     }
     #endregion
 
-    #region Phase 4: Compatibility Settings
-    Write-Status -Message "Applying Windows compatibility settings..." -Type "Info"
+    #region Phase 4: cnc-ddraw Installation
+    Write-Status -Message "Installing cnc-ddraw for windowed mode compatibility..." -Type "Info"
     
     try {
-        $compatResult = Set-CompatibilitySettings -ExecutablePath $script:ConfigState.ExecutablePath
-        $script:ConfigState.CompatibilityFlags = $compatResult.CompatibilityFlags
-        Write-Status -Message "Compatibility settings applied successfully" -Type "Success"
-        Write-Host "    - Windows XP SP3 compatibility mode" -ForegroundColor Gray
-        Write-Host "    - Run as Administrator" -ForegroundColor Gray
-        Write-Host "    - Disable fullscreen optimizations" -ForegroundColor Gray
-        Write-Host "    - 16-bit color mode" -ForegroundColor Gray
+        $cncResult = Install-CncDdraw -GamePath $script:ConfigState.GamePath
+        $script:ConfigState.CncDdrawVersion = $cncResult.Version
+        Write-Status -Message "cnc-ddraw $($cncResult.Version) installed successfully" -Type "Success"
+        Write-Host "    - Windowed mode enabled" -ForegroundColor Gray
+        Write-Host "    - GDI renderer configured" -ForegroundColor Gray
+        Write-Host "    - DirectDraw interception active" -ForegroundColor Gray
     }
     catch {
-        $errorMsg = "Failed to apply compatibility settings: $($_.Exception.Message)"
+        $errorMsg = "Failed to install cnc-ddraw: $($_.Exception.Message)"
         $script:ConfigState.Errors += $errorMsg
         Write-Status -Message $errorMsg -Type "Error"
         $allStepsSucceeded = $false
-        # Continue with remaining steps even if this fails (Requirement 5.3)
+        # Continue with remaining steps even if this fails
     }
     #endregion
 

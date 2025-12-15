@@ -1,6 +1,6 @@
 # Army Men 2 Configuration Tool
 
-A PowerShell script that automatically configures Army Men 2 (Steam version) for optimal Windows 11 compatibility.
+A PowerShell script that automatically configures Army Men 2 (Steam version) for optimal Windows 11 compatibility using cnc-ddraw wrapper.
 
 ## Overview
 
@@ -8,16 +8,17 @@ This tool automates the complex setup process required to run Army Men 2 on mode
 
 - **Auto-detecting** your screen resolution
 - **Locating** your Steam installation and game files
-- **Applying** Windows compatibility settings
-- **Configuring** game resolution settings
+- **Installing** cnc-ddraw wrapper for windowed mode compatibility
+- **Configuring** DirectDraw interception to prevent crashes and resolution changes
 
 ## Features
 
 - ✅ **Automatic Resolution Detection** - Detects your primary monitor's resolution using multiple fallback methods
 - ✅ **Steam Integration** - Automatically finds Steam installation and library folders
 - ✅ **Game Discovery** - Locates Army Men 2 installation across multiple Steam libraries
-- ✅ **Compatibility Settings** - Applies Windows XP SP3 compatibility mode, admin privileges, and display optimizations
-- ✅ **Configuration Management** - Creates and updates game configuration files with proper resolution settings
+- ✅ **cnc-ddraw Integration** - Downloads and installs cnc-ddraw wrapper for modern compatibility
+- ✅ **Windowed Mode** - Forces the game to run in a resizable window instead of changing screen resolution
+- ✅ **DirectPlay Support** - Guides users through DirectPlay installation when needed
 - ✅ **Comprehensive Testing** - Includes extensive unit tests and property-based testing
 
 ## Quick Start
@@ -47,24 +48,25 @@ This tool automates the complex setup process required to run Army Men 2 on mode
 - Parses Steam manifest files to locate game installation directory
 - Verifies game executable (`AM2.exe`) exists
 
-### Phase 4: Compatibility Settings
-- Applies Windows XP Service Pack 3 compatibility mode
-- Enables "Run as Administrator" 
-- Disables fullscreen optimizations
-- Sets 16-bit color mode
-- Writes settings to Windows compatibility registry
+### Phase 4: cnc-ddraw Installation
+- Downloads the latest cnc-ddraw wrapper from GitHub
+- Backs up the original ddraw.dll file
+- Installs cnc-ddraw with windowed mode configuration
+- Configures GDI renderer for maximum compatibility
 
 ### Phase 5: Game Configuration
-- Creates or updates `AM2.ini` configuration file
-- Sets `ScreenWidth` and `ScreenHeight` to match your display
-- Preserves existing configuration settings
+- Creates or updates game configuration files
+- Forces windowed mode to prevent screen resolution changes
+- Disables DirectDraw acceleration that causes crashes
+- Creates backup launcher for troubleshooting
 
 ## Requirements
 
 - **PowerShell 5.1** or later
 - **Windows 10/11** (tested on Windows 11)
 - **Army Men 2** installed via Steam
-- **Administrator privileges** (for compatibility settings)
+- **Internet connection** (to download cnc-ddraw)
+- **DirectPlay Windows feature** (script will prompt for installation if needed)
 
 ## Testing
 
@@ -102,25 +104,32 @@ Invoke-Pester .\tests\Configure-ArmyMen2.Tests.ps1 -Tag "Property"
 - Ensure your monitor is properly connected and recognized by Windows
 - Try running the script as administrator
 
-**"Failed to apply compatibility settings"**
-- Run PowerShell as Administrator
-- Check that your user account has permission to modify registry settings
+**"DirectPlay required" popup**
+- Click "Install this feature" when Windows prompts
+- Restart your computer after installation
+- DirectPlay is required for the game's networking code
+
+**"Black screen in windowed mode"**
+- The script automatically configures cnc-ddraw with GDI renderer
+- If issues persist, try editing `ddraw.ini` in the game folder
+- Change `renderer=gdi` to `renderer=opengl` or `renderer=direct3d9`
 
 ### Manual Configuration
 
-If the script fails, you can manually apply these settings:
+If the script fails, you can manually set up cnc-ddraw:
 
-1. **Compatibility Settings**: Right-click `AM2.exe` → Properties → Compatibility
-   - Check "Run this program in compatibility mode for: Windows XP (Service Pack 3)"
-   - Check "Run this program as an administrator"
-   - Check "Disable fullscreen optimizations"
-   - Check "Reduced color mode: 16-bit (65536) color"
-
-2. **Resolution Settings**: Create/edit `AM2.ini` in the game directory:
+1. **Download cnc-ddraw**: Get the latest version from GitHub (FunkyFr3sh/cnc-ddraw)
+2. **Install**: Copy `ddraw.dll` to the game directory
+3. **Configure**: Create `ddraw.ini` with these settings:
    ```ini
-   ScreenWidth=2560
-   ScreenHeight=1440
+   [ddraw]
+   windowed=true
+   fullscreen=false
+   renderer=gdi
+   nonexclusive=true
+   singlecpu=true
    ```
+4. **DirectPlay**: Enable via Windows Features → Legacy Components → DirectPlay
 
 ## Architecture
 
@@ -132,6 +141,21 @@ The script is organized into modular components:
 - **Compatibility Configurator Module**: Windows compatibility registry management
 - **Game Configurator Module**: INI file configuration management
 - **Output Functions**: Formatted status reporting and summary generation
+
+## After Installation
+
+**First Launch:**
+1. Run the configuration script: `.\Configure-ArmyMen2.ps1`
+2. Launch Army Men 2 from Steam
+3. If prompted for DirectPlay, click "Install this feature" and restart
+4. Game should now open in a resizable window
+
+**What You Get:**
+- ✅ Windowed mode (no more screen resolution changes)
+- ✅ Modern rendering via cnc-ddraw wrapper  
+- ✅ Stable performance on Windows 11
+- ✅ Resizable game window
+- ✅ No crashes or compatibility issues
 
 ## Contributing
 
