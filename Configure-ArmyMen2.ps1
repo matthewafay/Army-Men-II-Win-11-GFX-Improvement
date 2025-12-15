@@ -529,7 +529,8 @@ function Set-CompatibilitySettings {
     # RUNASADMIN = Run as Administrator
     # DISABLEDXMAXIMIZEDWINDOWEDMODE = Disable fullscreen optimizations
     # 16BITCOLOR = Reduced color mode (16-bit)
-    $compatibilityFlags = "~ WINXPSP3 RUNASADMIN DISABLEDXMAXIMIZEDWINDOWEDMODE 16BITCOLOR"
+    # HIGHDPIAWARE = High DPI awareness for better scaling
+    $compatibilityFlags = "~ WINXPSP3 RUNASADMIN DISABLEDXMAXIMIZEDWINDOWEDMODE 16BITCOLOR HIGHDPIAWARE"
 
     # Registry path for compatibility layers
     $registryPath = "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
@@ -556,6 +557,7 @@ function Set-CompatibilitySettings {
                 RunAsAdministrator          = $true
                 DisableFullscreenOptimizations = $true
                 ReducedColorMode            = "16-bit"
+                HighDPIAware               = $true
             }
             Success             = $true
         }
@@ -773,9 +775,31 @@ function Set-GameResolution {
             Write-Verbose "Read existing config with $($configContent.Count) entries"
         }
 
-        # Update resolution values
-        $configContent['ScreenWidth'] = $Width.ToString()
-        $configContent['ScreenHeight'] = $Height.ToString()
+        # Force windowed mode to avoid DirectPlay and fullscreen issues
+        # Use a more compatible resolution that old games can handle
+        $safeWidth = if ($Width -gt 1920) { 1024 } else { $Width }
+        $safeHeight = if ($Height -gt 1080) { 768 } else { $Height }
+        
+        # Update resolution values with safe resolution
+        $configContent['ScreenWidth'] = $safeWidth.ToString()
+        $configContent['ScreenHeight'] = $safeHeight.ToString()
+        $configContent['Windowed'] = '1'
+        $configContent['FullScreen'] = '0'
+        $configContent['ColorDepth'] = '16'
+        $configContent['DirectDraw'] = '0'
+        $configContent['Direct3D'] = '0'
+        $configContent['Hardware3D'] = '0'
+        
+        # Also create a windowed launcher batch file
+        $launcherContent = @"
+@echo off
+echo Starting Army Men 2 in windowed compatibility mode...
+set __COMPAT_LAYER=WIN95 RUNASADMIN DISABLEDXMAXIMIZEDWINDOWEDMODE
+cd /d "$GamePath"
+start "" "ArmyMen2.exe"
+"@
+        $launcherPath = Join-Path -Path $GamePath -ChildPath "Launch_Windowed.bat"
+        Set-Content -Path $launcherPath -Value $launcherContent -Force
 
         # Write config file
         $outputLines = @()
