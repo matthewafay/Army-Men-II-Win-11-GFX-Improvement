@@ -22,7 +22,7 @@
     Supported Games:
     - Army Men (App ID: 549160, Executable: Armymen.exe)
     - Army Men II (App ID: 549170, Executable: ArmyMen2.exe)
-    - Army Men RTS (App ID: 32900, Executable: ArmyMenRTS.exe)
+    - Army Men RTS (App ID: 58300, Executable: amrts.exe)
     - Army Men: Toys in Space (App ID: 549180, Executable: ARMYMENTIS.exe)
 #>
 
@@ -51,8 +51,8 @@ $script:SupportedGames = @{
     }
     3 = @{
         Name = "Army Men RTS"
-        AppId = "32900"
-        Executable = "ArmyMenRTS.exe"
+        AppId = "58300"
+        Executable = "amrts.exe"
         InstallDir = "Army Men RTS"
         DisplayName = "Army Men RTS"
     }

@@ -6,7 +6,7 @@ A PowerShell script that automatically configures Army Men games (Steam versions
 
 - **Army Men** (App ID: 549160)
 - **Army Men II** (App ID: 549170)
-- **Army Men RTS** (App ID: 32900)
+- **Army Men RTS** (App ID: 58300)
 - **Army Men: Toys in Space** (App ID: 549180)
 
 ## Overview
@@ -74,7 +74,7 @@ This tool automates the complex setup process required to run Army Men games on 
 - Searches all Steam libraries for the selected Army Men game:
   - Army Men (App ID: 549160, Executable: Armymen.exe)
   - Army Men II (App ID: 549170, Executable: ArmyMen2.exe)
-  - Army Men RTS (App ID: 32900, Executable: ArmyMenRTS.exe)
+  - Army Men RTS (App ID: 58300, Executable: amrts.exe)
   - Army Men: Toys in Space (App ID: 549180, Executable: ARMYMENTIS.exe)
 - Parses Steam manifest files to locate game installation directory
 - Verifies game executable exists
