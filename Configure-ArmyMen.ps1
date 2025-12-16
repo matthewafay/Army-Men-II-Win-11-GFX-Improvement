@@ -13,32 +13,50 @@
 
 .PARAMETER GameChoice
     Optional parameter to specify which game to configure:
-    1 = Army Men 2
-    2 = Army Men: Toys in Space
+    1 = Army Men
+    2 = Army Men II
+    3 = Army Men RTS
+    4 = Army Men: Toys in Space
 
 .NOTES
     Supported Games:
-    - Army Men 2 (App ID: 549170, Executable: ArmyMen2.exe)
+    - Army Men (App ID: 549160, Executable: Armymen.exe)
+    - Army Men II (App ID: 549170, Executable: ArmyMen2.exe)
+    - Army Men RTS (App ID: 32900, Executable: ArmyMenRTS.exe)
     - Army Men: Toys in Space (App ID: 549180, Executable: ARMYMENTIS.exe)
 #>
 
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $false)]
-    [ValidateRange(1, 2)]
+    [ValidateRange(1, 4)]
     [int]$GameChoice
 )
 
 #region Game Definitions
 $script:SupportedGames = @{
     1 = @{
-        Name = "Army Men 2"
+        Name = "Army Men"
+        AppId = "549160"
+        Executable = "Armymen.exe"
+        InstallDir = "Army Men"
+        DisplayName = "Army Men"
+    }
+    2 = @{
+        Name = "Army Men II"
         AppId = "549170"
         Executable = "ArmyMen2.exe"
         InstallDir = "Army Men II"
-        DisplayName = "Army Men 2"
+        DisplayName = "Army Men II"
     }
-    2 = @{
+    3 = @{
+        Name = "Army Men RTS"
+        AppId = "32900"
+        Executable = "ArmyMenRTS.exe"
+        InstallDir = "Army Men RTS"
+        DisplayName = "Army Men RTS"
+    }
+    4 = @{
         Name = "Army Men: Toys in Space"
         AppId = "549180"
         Executable = "ARMYMENTIS.exe"
@@ -71,10 +89,73 @@ $script:ConfigState = @{
 
 <#
 .SYNOPSIS
+    Checks if a specific Army Men game is installed.
+
+.PARAMETER GameInfo
+    Hashtable containing game information (AppId, Executable, InstallDir, etc.).
+
+.PARAMETER LibraryFolders
+    Array of Steam library folder paths to search.
+
+.OUTPUTS
+    Boolean indicating if the game is installed.
+
+.EXAMPLE
+    $isInstalled = Test-GameInstallation -GameInfo $gameInfo -LibraryFolders $libraryFolders
+#>
+function Test-GameInstallation {
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$GameInfo,
+        
+        [Parameter(Mandatory = $true)]
+        [string[]]$LibraryFolders
+    )
+
+    $appId = $GameInfo.AppId
+    $manifestFileName = "appmanifest_$appId.acf"
+
+    foreach ($libraryFolder in $LibraryFolders) {
+        $steamAppsPath = Join-Path -Path $libraryFolder -ChildPath "steamapps"
+        $manifestPath = Join-Path -Path $steamAppsPath -ChildPath $manifestFileName
+
+        if (Test-Path $manifestPath) {
+            try {
+                $manifestContent = Get-Content -Path $manifestPath -Raw -ErrorAction Stop
+                
+                # Parse manifest to extract installdir value
+                $installDirPattern = '"installdir"\s+"([^"]+)"'
+                $match = [regex]::Match($manifestContent, $installDirPattern)
+
+                if ($match.Success -and $match.Groups.Count -ge 2) {
+                    $installDir = $match.Groups[1].Value
+                    $gamePath = Join-Path -Path $steamAppsPath -ChildPath "common\$installDir"
+                    
+                    if (Test-Path $gamePath) {
+                        $executablePath = Join-Path -Path $gamePath -ChildPath $GameInfo.Executable
+                        if (Test-Path $executablePath) {
+                            return $true
+                        }
+                    }
+                }
+            }
+            catch {
+                # Continue checking other libraries
+            }
+        }
+    }
+
+    return $false
+}
+
+<#
+.SYNOPSIS
     Prompts the user to select which Army Men game to configure.
 
 .OUTPUTS
-    Integer representing the selected game (1 or 2).
+    Integer representing the selected game (1-4).
 
 .EXAMPLE
     $gameChoice = Select-ArmyMenGame
@@ -82,7 +163,10 @@ $script:ConfigState = @{
 function Select-ArmyMenGame {
     [CmdletBinding()]
     [OutputType([int])]
-    param()
+    param(
+        [Parameter(Mandatory = $false)]
+        [string[]]$LibraryFolders = @()
+    )
 
     Write-Host ""
     Write-Host "=" * 60 -ForegroundColor Green
@@ -94,21 +178,37 @@ function Select-ArmyMenGame {
     
     foreach ($gameId in $script:SupportedGames.Keys | Sort-Object) {
         $game = $script:SupportedGames[$gameId]
-        Write-Host "$gameId. $($game.DisplayName)" -ForegroundColor White
+        
+        # Check installation status if library folders are provided
+        $statusText = ""
+        if ($LibraryFolders.Count -gt 0) {
+            $isInstalled = Test-GameInstallation -GameInfo $game -LibraryFolders $LibraryFolders
+            if ($isInstalled) {
+                $statusText = " (Installed)"
+                $statusColor = "Green"
+            } else {
+                $statusText = " (Not Installed)"
+                $statusColor = "Red"
+            }
+            Write-Host "$gameId. $($game.DisplayName)" -ForegroundColor White -NoNewline
+            Write-Host $statusText -ForegroundColor $statusColor
+        } else {
+            Write-Host "$gameId. $($game.DisplayName)" -ForegroundColor White
+        }
     }
     
     Write-Host ""
     
     do {
-        $choice = Read-Host "Enter your choice (1-2)"
-        if ($choice -match '^\d+$' -and [int]$choice -ge 1 -and [int]$choice -le 2) {
+        $choice = Read-Host "Enter your choice (1-4)"
+        if ($choice -match '^\d+$' -and [int]$choice -ge 1 -and [int]$choice -le 4) {
             $selectedGame = $script:SupportedGames[[int]$choice]
             Write-Host ""
             Write-Status -Message "Selected: $($selectedGame.DisplayName)" -Type "Success"
             Write-Host ""
             return [int]$choice
         } else {
-            Write-Host "Invalid choice. Please enter 1 or 2." -ForegroundColor Red
+            Write-Host "Invalid choice. Please enter 1, 2, 3, or 4." -ForegroundColor Red
         }
     } while ($true)
 }
@@ -1301,7 +1401,7 @@ function Invoke-ArmyMenConfiguration {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $false)]
-        [ValidateRange(1, 2)]
+        [ValidateRange(1, 4)]
         [int]$GameChoice
     )
 
@@ -1323,9 +1423,27 @@ function Invoke-ArmyMenConfiguration {
 
     $allStepsSucceeded = $true
 
-    #region Phase 0: Game Selection
+    #region Phase 0: Steam Location (for game detection)
+    $steamPath = $null
+    $libraryFolders = @()
+    
     if (-not $GameChoice) {
-        $GameChoice = Select-ArmyMenGame
+        # Get Steam info first to check game installation status
+        try {
+            Write-Status -Message "Locating Steam installation for game detection..." -Type "Info"
+            $steamPath = Get-SteamInstallPath
+            $libraryFolders = Get-SteamLibraryFolders -SteamPath $steamPath
+            Write-Status -Message "Found Steam with $($libraryFolders.Count) library folder(s)" -Type "Success"
+        }
+        catch {
+            Write-Status -Message "Steam not found - installation status will not be shown" -Type "Warning"
+        }
+    }
+    #endregion
+
+    #region Phase 1: Game Selection
+    if (-not $GameChoice) {
+        $GameChoice = Select-ArmyMenGame -LibraryFolders $libraryFolders
     }
     
     $script:ConfigState.SelectedGame = $script:SupportedGames[$GameChoice]
@@ -1333,7 +1451,7 @@ function Invoke-ArmyMenConfiguration {
     Write-Host ""
     #endregion
 
-    #region Phase 1: Resolution Detection
+    #region Phase 2: Resolution Detection
     Write-Status -Message "Detecting screen resolution..." -Type "Info"
     
     try {
@@ -1353,31 +1471,48 @@ function Invoke-ArmyMenConfiguration {
     }
     #endregion
 
-    #region Phase 2: Steam Location
-    Write-Status -Message "Locating Steam installation..." -Type "Info"
-    
-    try {
-        $steamPath = Get-SteamInstallPath
-        $script:ConfigState.SteamPath = $steamPath
-        Write-Status -Message "Steam found at: $steamPath" -Type "Success"
-    }
-    catch {
-        $errorMsg = "Failed to locate Steam: $($_.Exception.Message)"
-        $script:ConfigState.Errors += $errorMsg
-        Write-Status -Message $errorMsg -Type "Error"
-        $allStepsSucceeded = $false
-        # Steam location is critical - cannot continue without it
-        Write-Summary -Results $script:ConfigState
-        return $script:ConfigState
-    }
+    #region Phase 3: Steam Location (if not already done)
+    if (-not $steamPath) {
+        Write-Status -Message "Locating Steam installation..." -Type "Info"
+        
+        try {
+            $steamPath = Get-SteamInstallPath
+            $script:ConfigState.SteamPath = $steamPath
+            Write-Status -Message "Steam found at: $steamPath" -Type "Success"
+        }
+        catch {
+            $errorMsg = "Failed to locate Steam: $($_.Exception.Message)"
+            $script:ConfigState.Errors += $errorMsg
+            Write-Status -Message $errorMsg -Type "Error"
+            $allStepsSucceeded = $false
+            # Steam location is critical - cannot continue without it
+            Write-Summary -Results $script:ConfigState
+            return $script:ConfigState
+        }
 
-    # Parse Steam library folders
-    Write-Status -Message "Parsing Steam library folders..." -Type "Info"
-    
-    try {
-        $libraryFolders = Get-SteamLibraryFolders -SteamPath $steamPath
+        # Parse Steam library folders
+        Write-Status -Message "Parsing Steam library folders..." -Type "Info"
+        
+        try {
+            $libraryFolders = Get-SteamLibraryFolders -SteamPath $steamPath
+            $script:ConfigState.LibraryFolders = $libraryFolders
+            Write-Status -Message "Found $($libraryFolders.Count) Steam library folder(s)" -Type "Success"
+        }
+        catch {
+            $errorMsg = "Failed to parse Steam libraries: $($_.Exception.Message)"
+            $script:ConfigState.Errors += $errorMsg
+            Write-Status -Message $errorMsg -Type "Error"
+            $allStepsSucceeded = $false
+            # Library parsing is critical - cannot continue without it
+            Write-Summary -Results $script:ConfigState
+            return $script:ConfigState
+        }
+    } else {
+        # Steam info already obtained during game selection
+        $script:ConfigState.SteamPath = $steamPath
         $script:ConfigState.LibraryFolders = $libraryFolders
-        Write-Status -Message "Found $($libraryFolders.Count) Steam library folder(s)" -Type "Success"
+        Write-Status -Message "Using Steam installation at: $steamPath" -Type "Success"
+        Write-Status -Message "Using $($libraryFolders.Count) Steam library folder(s)" -Type "Success"
     }
     catch {
         $errorMsg = "Failed to parse Steam libraries: $($_.Exception.Message)"
@@ -1390,7 +1525,7 @@ function Invoke-ArmyMenConfiguration {
     }
     #endregion
 
-    #region Phase 3: Game Search
+    #region Phase 4: Game Search
     $selectedGame = $script:ConfigState.SelectedGame
     Write-Status -Message "Searching for $($selectedGame.DisplayName) installation..." -Type "Info"
     
@@ -1411,7 +1546,7 @@ function Invoke-ArmyMenConfiguration {
     }
     #endregion
 
-    #region Phase 4: cnc-ddraw Installation
+    #region Phase 5: cnc-ddraw Installation
     Write-Status -Message "Installing cnc-ddraw for windowed mode compatibility..." -Type "Info"
     
     try {
@@ -1432,7 +1567,7 @@ function Invoke-ArmyMenConfiguration {
     }
     #endregion
 
-    #region Phase 5: Game Configuration
+    #region Phase 6: Game Configuration
     Write-Status -Message "Configuring game resolution settings..." -Type "Info"
     
     try {
@@ -1449,7 +1584,7 @@ function Invoke-ArmyMenConfiguration {
     }
     #endregion
 
-    #region Phase 6: Summary
+    #region Phase 7: Summary
     $script:ConfigState.Success = $allStepsSucceeded
     Write-Summary -Results $script:ConfigState
     #endregion
@@ -1459,7 +1594,11 @@ function Invoke-ArmyMenConfiguration {
 
 # Execute main configuration when script is run directly (not dot-sourced for testing)
 if ($MyInvocation.InvocationName -ne '.') {
-    Invoke-ArmyMenConfiguration -GameChoice $GameChoice
+    if ($PSBoundParameters.ContainsKey('GameChoice')) {
+        Invoke-ArmyMenConfiguration -GameChoice $GameChoice
+    } else {
+        Invoke-ArmyMenConfiguration
+    }
 }
 
 #endregion

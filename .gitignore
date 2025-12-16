@@ -1,0 +1,22 @@
+# Kiro IDE files
+.kiro/
+
+# PowerShell execution policy files
+*.ps1.bak
+
+# Temporary files
+*.tmp
+*.temp
+
+# Log files
+*.log
+
+# Windows thumbnail cache files
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/

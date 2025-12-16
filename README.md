@@ -4,7 +4,9 @@ A PowerShell script that automatically configures Army Men games (Steam versions
 
 ## Supported Games
 
-- **Army Men 2** (App ID: 549170)
+- **Army Men** (App ID: 549160)
+- **Army Men II** (App ID: 549170)
+- **Army Men RTS** (App ID: 32900)
 - **Army Men: Toys in Space** (App ID: 549180)
 
 ## Overview
@@ -31,20 +33,29 @@ This tool automates the complex setup process required to run Army Men games on 
 
 ## Quick Start
 
-1. **Prerequisites**: Ensure you have one or both Army Men games installed via Steam
+1. **Prerequisites**: 
+   - Ensure you have one or more Army Men games installed via Steam
+   - Games must be installed and appear in your Steam library
+   - The script will show "(Installed)" or "(Not Installed)" next to each game option
 2. **Run the script**: Execute `Configure-ArmyMen.ps1` in PowerShell
-3. **Select your game**: Choose which Army Men game to configure (1 or 2)
+3. **Select your game**: Choose which Army Men game to configure (1, 2, 3, or 4)
 4. **Follow the output**: The script will display progress and results for each configuration step
 
 ```powershell
 # Interactive mode - prompts for game selection
 .\Configure-ArmyMen.ps1
 
-# Direct mode - configure Army Men 2
+# Direct mode - configure Army Men
 .\Configure-ArmyMen.ps1 -GameChoice 1
 
-# Direct mode - configure Army Men: Toys in Space
+# Direct mode - configure Army Men II
 .\Configure-ArmyMen.ps1 -GameChoice 2
+
+# Direct mode - configure Army Men RTS
+.\Configure-ArmyMen.ps1 -GameChoice 3
+
+# Direct mode - configure Army Men: Toys in Space
+.\Configure-ArmyMen.ps1 -GameChoice 4
 ```
 
 ## What It Does
@@ -61,7 +72,9 @@ This tool automates the complex setup process required to run Army Men games on 
 
 ### Phase 3: Game Discovery
 - Searches all Steam libraries for the selected Army Men game:
-  - Army Men 2 (App ID: 549170, Executable: ArmyMen2.exe)
+  - Army Men (App ID: 549160, Executable: Armymen.exe)
+  - Army Men II (App ID: 549170, Executable: ArmyMen2.exe)
+  - Army Men RTS (App ID: 32900, Executable: ArmyMenRTS.exe)
   - Army Men: Toys in Space (App ID: 549180, Executable: ARMYMENTIS.exe)
 - Parses Steam manifest files to locate game installation directory
 - Verifies game executable exists
@@ -84,7 +97,7 @@ This tool automates the complex setup process required to run Army Men games on 
 
 - **PowerShell 5.1** or later
 - **Windows 10/11** (tested on Windows 11)
-- **Army Men games** installed via Steam (Army Men 2 and/or Army Men: Toys in Space)
+- **Army Men games** installed via Steam (Army Men, Army Men II, Army Men RTS, and/or Army Men: Toys in Space)
 - **Internet connection** (to download cnc-ddraw)
 - **DirectPlay Windows feature** (script will prompt for installation if needed)
 
@@ -117,10 +130,11 @@ Note: The test file still references the old script name but tests the same func
 - Check that Steam appears in Windows "Add or Remove Programs"
 
 **"Army Men [game] not found"**
-- Verify the selected game is installed via Steam
+- Verify the selected game is installed via Steam (should show "Installed" in the menu)
 - Check that the game appears in your Steam library
 - Try running Steam as administrator and verify game files
-- Make sure you selected the correct game number (1 for Army Men 2, 2 for Toys in Space)
+- Make sure you selected the correct game number (1 for Army Men, 2 for Army Men II, 3 for Army Men RTS, 4 for Toys in Space)
+- If the game shows "(Not Installed)", install it from Steam first
 
 **"Failed to detect screen resolution"**
 - Update your display drivers
@@ -175,7 +189,7 @@ The script is organized into modular components:
 
 **First Launch:**
 1. Run the configuration script: `.\Configure-ArmyMen.ps1`
-2. Select which Army Men game to configure (1 or 2)
+2. Select which Army Men game to configure (1, 2, 3, or 4)
 3. Launch the configured game from Steam
 4. If prompted for DirectPlay, click "Install this feature" and restart
 5. Game opens in enhanced 1600x1200 windowed mode
@@ -221,8 +235,20 @@ The script creates multiple visual presets you can switch between:
 
 Use the **Graphics_Switcher.bat** file in your game directory:
 
-**For Army Men 2:**
+**For Army Men:**
+1. Navigate to `C:\Program Files (x86)\Steam\steamapps\common\Army Men`
+2. Double-click `Graphics_Switcher.bat`
+3. Choose your preferred visual mode (1-5)
+4. Launch the game to see the changes
+
+**For Army Men II:**
 1. Navigate to `C:\Program Files (x86)\Steam\steamapps\common\Army Men II`
+2. Double-click `Graphics_Switcher.bat`
+3. Choose your preferred visual mode (1-5)
+4. Launch the game to see the changes
+
+**For Army Men RTS:**
+1. Navigate to `C:\Program Files (x86)\Steam\steamapps\common\Army Men RTS`
 2. Double-click `Graphics_Switcher.bat`
 3. Choose your preferred visual mode (1-5)
 4. Launch the game to see the changes
@@ -299,7 +325,7 @@ Use the **Graphics_Switcher.bat** file in your game directory:
 
 ## Game Selection
 
-When you run the script without parameters, it will display an interactive menu:
+When you run the script without parameters, it will display an interactive menu with installation status:
 
 ```
 ============================================================
@@ -308,15 +334,21 @@ Army Men Games Configuration Tool
 
 Select which Army Men game to configure:
 
-1. Army Men 2
-2. Army Men: Toys in Space
+1. Army Men (Installed)
+2. Army Men II (Not Installed)
+3. Army Men RTS (Installed)
+4. Army Men: Toys in Space (Installed)
 
-Enter your choice (1-2):
+Enter your choice (1-4):
 ```
 
+The script automatically detects which games are installed and shows their status. You can only configure games that are marked as "(Installed)".
+
 You can also skip the menu by using the `-GameChoice` parameter:
-- `.\Configure-ArmyMen.ps1 -GameChoice 1` for Army Men 2
-- `.\Configure-ArmyMen.ps1 -GameChoice 2` for Army Men: Toys in Space
+- `.\Configure-ArmyMen.ps1 -GameChoice 1` for Army Men
+- `.\Configure-ArmyMen.ps1 -GameChoice 2` for Army Men II
+- `.\Configure-ArmyMen.ps1 -GameChoice 3` for Army Men RTS
+- `.\Configure-ArmyMen.ps1 -GameChoice 4` for Army Men: Toys in Space
 
 ## Contributing
 
@@ -326,6 +358,17 @@ This project uses property-based testing to ensure reliability across different 
 2. Include property-based tests for functions with variable inputs
 3. Update documentation for any new features
 4. Ensure all tests pass before submitting changes
+
+## Disclaimer
+
+**AI-Assisted Development**: This script was created with assistance from AI tools and may contain errors or unexpected behavior. While extensively tested, users should:
+
+- **Review the script** before running it on their systems
+- **Backup important files** before making changes
+- **Test in a safe environment** first if possible
+- **Report issues** if you encounter problems
+
+The script modifies system registry settings and downloads external files. Use at your own discretion and risk.
 
 ## License
 
