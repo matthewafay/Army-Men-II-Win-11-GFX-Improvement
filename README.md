@@ -1,6 +1,6 @@
 # Army Men Games Configuration Tool
 
-A PowerShell script that automatically configures Army Men games (Steam versions) for optimal Windows 11 compatibility using cnc-ddraw wrapper.
+A PowerShell script that automatically configures Army Men games (Steam versions) for optimal Windows 11 compatibility using cnc-ddraw and dgVoodoo2 wrappers.
 
 ## Supported Games
 
@@ -16,16 +16,18 @@ This tool automates the complex setup process required to run Army Men games on 
 - **Game Selection** - Interactive prompt to choose which Army Men game to configure
 - **Auto-detecting** your screen resolution
 - **Locating** your Steam installation and game files
-- **Installing** cnc-ddraw wrapper for windowed mode compatibility
-- **Configuring** DirectDraw interception to prevent crashes and resolution changes
+- **Installing graphics wrappers** - cnc-ddraw for Army Men/Toys in Space, dgVoodoo2 for Army Men II/RTS
+- **Fixing vehicle movement** - dgVoodoo2 simulates older hardware to fix physics issues in Army Men II
+- **Configuring** DirectDraw/DirectX interception to prevent crashes and compatibility issues
 
 ## Features
 
 - ✅ **Automatic Resolution Detection** - Detects your primary monitor's resolution using multiple fallback methods
 - ✅ **Steam Integration** - Automatically finds Steam installation and library folders
-- ✅ **Game Discovery** - Locates Army Men 2 installation across multiple Steam libraries
-- ✅ **cnc-ddraw Integration** - Downloads and installs cnc-ddraw wrapper for modern compatibility
-- ✅ **Enhanced Graphics** - 1600x1200 windowed mode with OpenGL renderer and sharp upscaling
+- ✅ **Game Discovery** - Locates Army Men games across multiple Steam libraries
+- ✅ **Smart Wrapper Selection** - Uses cnc-ddraw for Army Men/Toys in Space, dgVoodoo2 for Army Men II/RTS
+- ✅ **Vehicle Movement Fix** - dgVoodoo2 fixes tanks/boats not moving in Army Men II
+- ✅ **Enhanced Graphics** - Windowed mode with upscaling for cnc-ddraw games
 - ✅ **Multiple Visual Modes** - Sharp upscaling, smooth upscaling, pixel-perfect, and original modes
 - ✅ **Graphics Switcher** - Easy-to-use tool for switching between different visual configurations
 - ✅ **DirectPlay Support** - Guides users through DirectPlay installation when needed
@@ -244,72 +246,82 @@ The script is organized into modular components:
 2. Select which Army Men game to configure (1, 2, 3, or 4)
 3. Launch the configured game from Steam
 4. If prompted for DirectPlay, click "Install this feature" and restart
-5. Game opens in enhanced 1600x1200 windowed mode
 
-**What You Get:**
+**What You Get (Army Men & Toys in Space - cnc-ddraw):**
 - ✅ **Enhanced Graphics** - Sharp upscaling shader for crisp, clean pixels
 - ✅ **Large Window** - 1600x1200 default size (still resizable)
 - ✅ **Modern Rendering** - OpenGL with VSync for smooth 60 FPS
 - ✅ **Multiple Visual Modes** - Sharp, smooth, pixel-perfect, and original presets
 - ✅ **Graphics Switcher** - Easy tool to switch between visual configurations
-- ✅ **Stable Performance** - No crashes or screen resolution changes
-- ✅ **FPS Counter Support** - Use Steam's built-in FPS counter
+
+**What You Get (Army Men II & RTS - dgVoodoo2):**
+- ✅ **Working Vehicle Physics** - Tanks, boats, and helicopters move properly
+- ✅ **Simulated Old Hardware** - dgVoodoo2 emulates vintage graphics cards
+- ✅ **Fullscreen Mode** - Required for proper physics in Army Men II
+- ✅ **No Watermark** - dgVoodoo watermark disabled by default
+- ✅ **Adjustable Settings** - Use dgVoodooCpl.exe to tweak graphics options
 
 ## Graphics Modes
 
+### For Army Men & Toys in Space (cnc-ddraw)
+
 The script creates multiple visual presets you can switch between:
 
-### **Sharp Upscaling** ⭐ (Default)
+#### **Sharp Upscaling** ⭐ (Default)
 - Pixel-perfect scaling with crisp, clean edges
 - Best for maintaining the original retro aesthetic
 - 1600x1200 windowed mode with OpenGL + VSync
 
-### **Smooth Upscaling**
+#### **Smooth Upscaling**
 - Anti-aliased scaling for a softer, modern look
 - Reduces pixelation but may appear slightly blurred
 - Same performance as sharp mode
 
-### **Pixel Perfect 2x**
+#### **Pixel Perfect 2x**
 - Fixed 1280x960 window (exactly 2x original resolution)
 - Non-resizable for perfect pixel alignment
 - Best for purists who want exact scaling
 
-### **Enhanced OpenGL**
+#### **Enhanced OpenGL**
 - Modern rendering without upscaling shaders
 - Good performance baseline
 - Fallback if shaders cause issues
 
-### **Original GDI**
+#### **Original GDI**
 - Safe fallback using the original rendering method
 - Use if you experience any compatibility issues
 
+### For Army Men II & RTS (dgVoodoo2)
+
+These games use dgVoodoo2 which provides different options via `dgVoodooCpl.exe`:
+
+- **Resolution** - Can be forced to specific resolutions or left app-controlled
+- **Antialiasing** - Up to 8x MSAA for smoother edges
+- **Filtering** - Bilinear/trilinear texture filtering
+- **Fullscreen/Windowed** - Toggle via General tab (Army Men II requires fullscreen for vehicle physics)
+
 ## Switching Graphics Modes
+
+### For Army Men & Toys in Space (cnc-ddraw)
 
 Use the **Graphics_Switcher.bat** file in your game directory:
 
-**For Army Men:**
-1. Navigate to `C:\Program Files (x86)\Steam\steamapps\common\Army Men`
+1. Navigate to the game folder (e.g., `C:\Program Files (x86)\Steam\steamapps\common\Army Men`)
 2. Double-click `Graphics_Switcher.bat`
 3. Choose your preferred visual mode (1-5)
 4. Launch the game to see the changes
 
-**For Army Men II:**
-1. Navigate to `C:\Program Files (x86)\Steam\steamapps\common\Army Men II`
-2. Double-click `Graphics_Switcher.bat`
-3. Choose your preferred visual mode (1-5)
-4. Launch the game to see the changes
+### For Army Men II & RTS (dgVoodoo2)
 
-**For Army Men RTS:**
-1. Navigate to `C:\Program Files (x86)\Steam\steamapps\common\Army Men RTS`
-2. Double-click `Graphics_Switcher.bat`
-3. Choose your preferred visual mode (1-5)
-4. Launch the game to see the changes
+Use the **dgVoodooCpl.exe** control panel in your game directory:
 
-**For Army Men: Toys in Space:**
-1. Navigate to `C:\Program Files (x86)\Steam\steamapps\common\Army Men - Toys in Space`
-2. Double-click `Graphics_Switcher.bat`
-3. Choose your preferred visual mode (1-5)
-4. Launch the game to see the changes
+1. Navigate to the game folder (e.g., `C:\Program Files (x86)\Steam\steamapps\common\Army Men II`)
+2. Run `dgVoodooCpl.exe`
+3. **Important**: Set the config folder to `.\ ` (current directory) 
+4. Adjust settings in the General and DirectX tabs
+5. Click **Apply** and launch the game
+
+**Note**: Army Men II requires fullscreen mode for proper vehicle physics. Do not change to windowed mode.
 
 ## FAQ / Known Issues
 
